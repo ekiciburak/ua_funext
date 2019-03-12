@@ -226,53 +226,8 @@ Defined.
 
 (*/equivalences *)
 
-(* homotopy levels *)
-Definition fiber  {A B: UU} (f: A -> B) (y: B): UU := ∑ x: A, Id (f x) y.
-Definition isSurj {A B: UU} (f: A -> B): UU := ∏ (y: B), fiber f y.
-(** total *)
-Definition totalA {A: UU} (P Q: A -> UU) (f: ∏ x: A, P x -> Q x): (∑ x: A, P x) -> (∑ x: A, Q x).
-Proof. intro w. exact { (pr1 w); (f (pr1 w) (pr2 w))}. Defined.
-
-Definition isContr  (A: UU): UU := ∑ a: A, ∏ x: A, Id a x.
-Definition isContrP {A: UU} (P: A -> UU): UU :=  ∏ x: A, isContr (P x).
-Definition isContrf {A B: UU} (f: A -> B): UU := ∏ y: B, isContr (fiber f y).
-
-
-Definition fibration (X: UU) := X -> UU.
-Definition section {X: UU} (P: fibration X):= ∏ x: X, P x.
-Definition retract (A B: UU) := ∑ r: A -> B, ∑ s: B -> A, ∏ y: B, Id (r (s y)) y.
-(*/homotopy levels *)
 
 (* axioms *)
-
-(* UA *)
-Definition idtoeqv: ∏ {A B: UU}, Id A B -> Equiv A B.
-Proof. intros A B p.
-       exists (transport (@id UU) p).
-(*     apply transport_isequiv with (P := idU). (** closes the goal *) *)
-       apply h249_i.
-       unshelve econstructor.
-       + exact (transport _ (inverse p)).
-       + now induction p.
-Defined.
-
-(** Definition UA_def: UU :=  Equiv (Equiv A B) (Id A B). *)
-Definition UA_def: UU := ∏ (A B: UU), isequiv (@idtoeqv A B).
-Axiom UA: UA_def.
-
-Definition ua {A B : UU}: (Equiv A B) -> (Id A B).
-Proof. destruct (h249_ii (UA A B)) as (eqvtoid, cc).
-       exact eqvtoid.
-(*     exact (pr1 (h249_ii (UA A B))). *)
-Defined.
-
-Definition ua_f {A B : UU} (f: A-> B): (isequiv f) -> (Id A B).
-Proof. intro e.
-       destruct (h249_ii (UA A B)) as (eqvtoid, cc).
-       apply eqvtoid.
-       exists f. exact e.
-(*     exact (pr1 (h249_ii (UA A B))). *)
-Defined.
 
 (* FUNEXT *)
 Definition happly {A: UU} {B: A -> UU} (f g: ∏x: A, B x): (Id f g) -> homotopy f g.
@@ -316,6 +271,58 @@ Proof. unfold funext.
 (*     exact (pr2 (pr2 (FE A B f g)) p). *)
 Defined.
 
+(* UA *)
+Definition idtoeqv: ∏ {A B: UU}, Id A B -> Equiv A B.
+Proof. intros A B p.
+       exists (transport (@id UU) p).
+(*     apply transport_isequiv with (P := idU). (** closes the goal *) *)
+       apply h249_i.
+       unshelve econstructor.
+       + exact (transport _ (inverse p)).
+       + now induction p.
+Defined.
+
+(** Definition UA_def: UU :=  Equiv (Equiv A B) (Id A B). *)
+Definition UA_def: UU := ∏ (A B: UU), isequiv (@idtoeqv A B).
+Axiom UA: UA_def.
+
+Definition ua {A B : UU}: (Equiv A B) -> (Id A B).
+Proof. destruct (h249_ii (UA A B)) as (eqvtoid, cc).
+       exact eqvtoid.
+(*     exact (pr1 (h249_ii (UA A B))). *)
+Defined.
+
+Definition ua_f {A B : UU} (f: A-> B): (isequiv f) -> (Id A B).
+Proof. intro e.
+       destruct (h249_ii (UA A B)) as (eqvtoid, cc).
+       apply eqvtoid.
+       exists f. exact e.
+(*     exact (pr1 (h249_ii (UA A B))). *)
+Defined.
+
+(* /axioms *)
+
+
+(* homotopy levels *)
+Definition fiber  {A B: UU} (f: A -> B) (y: B): UU := ∑ x: A, Id (f x) y.
+Definition isSurj {A B: UU} (f: A -> B): UU := ∏ (y: B), fiber f y.
+(** total *)
+Definition totalA {A: UU} (P Q: A -> UU) (f: ∏ x: A, P x -> Q x): (∑ x: A, P x) -> (∑ x: A, Q x).
+Proof. intro w. exact { (pr1 w); (f (pr1 w) (pr2 w))}. Defined.
+
+Definition isContr  (A: UU): UU := ∑ a: A, ∏ x: A, Id a x.
+Definition isContrP {A: UU} (P: A -> UU): UU :=  ∏ x: A, isContr (P x).
+Definition isContrf {A B: UU} (f: A -> B): UU := ∏ y: B, isContr (fiber f y).
+
+
+Definition fibration (X: UU) := X -> UU.
+Definition section {X: UU} (P: fibration X):= ∏ x: X, P x.
+Definition retract (A B: UU) := ∑ r: A -> B, ∑ s: B -> A, ∏ y: B, Id (r (s y)) y.
+(*/homotopy levels *)
+
+(* axioms *)
+
+(* WFE *)
 Definition wfunext_def: UU := ∏  (A: UU) (P: A -> UU),
   (∏x: A, isContr (P x)) -> isContr (∏x: A, P x).
 Axiom WFE: wfunext_def.
