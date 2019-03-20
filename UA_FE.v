@@ -1,6 +1,8 @@
 Require Import  Coq.Program.Equality. (* enables "dependent induction" *)
 Require Import Setoid.
 
+Ltac verysimple := easy.
+
 Definition UU := Type.
 
 Identity Coercion fromUUtoType : UU >-> Sortclass.
@@ -36,6 +38,8 @@ Notation "'∑'  x .. y , P" := (total2 (fun x => .. (total2 (fun y => P)) ..))
 Inductive Id {A: UU}: A -> A -> UU: UU :=
   refl: forall a, Id a a.
 Arguments refl {A a} , [A] a.
+
+Print Id_rect.
 
 Definition Id_eql: ∏ {A: UU} (a b: A), Id a b -> a = b.
 Proof. intros A a b p. now induction p. Defined.
@@ -226,6 +230,16 @@ Defined.
 
 (*/equivalences *)
 
+(*
+Fail Inductive Rec (A : Type) :=
+  In : (Rec A -> A) -> Rec A.
+
+Inductive Rec (A : Type) :=
+  In : (A -> A) -> Rec A.
+
+Fail Definition Y {A: Type} := 
+  fun f: (A -> A -> Type) => (fun x:A => (f x x)) (fun x:A => (f x x)).
+*)
 
 (* axioms *)
 
@@ -238,16 +252,16 @@ Definition funext_def_qinv: UU := ∏  (A: UU) (B: A -> UU) (f g: ∏x:A, B x),
   qinv (@happly A B f g).
 Axiom FE: funext_def_qinv.
 
-Definition funext_def_isequiv : ∏  (A: UU) (B: A -> UU) (f g: ∏x:A, B x),
-  isequiv (@happly A B f g).
-Proof. intros. apply h249_i.
-       exact (FE A B f g).
-Defined.
-
 Definition funext {A: UU} {B: A -> UU} {f g: ∏ x: A, B x}: (∏ x: A, Id (f x) (g x)) -> Id f g.
 Proof. destruct (FE A B f g) as (inv_happly, cc2).
        exact inv_happly.
 (*     exact (pr1 (FE A B f g)). *)
+Defined.
+
+Definition funext_def_isequiv : ∏  (A: UU) (B: A -> UU) (f g: ∏x:A, B x),
+  isequiv (@happly A B f g).
+Proof. intros. apply h249_i.
+       exact (FE A B f g).
 Defined.
 
 Definition happly_funext {A: UU} {B: A -> UU} {f g: ∏ x:A, B x} 
@@ -259,7 +273,6 @@ Proof. unfold funext.
        exact (cc1 h).
 (*     exact ((pr1 (pr2 (FE A B f g)) h)). *)
 Defined.
-
 
 Definition funext_happly {A: UU} {B: A -> UU} {f g: ∏ x: A, B x} 
                          (p: Id f g): Id (funext (happly _ _ p)) p.
@@ -274,6 +287,7 @@ Defined.
 (* UA *)
 Definition idtoeqv: ∏ {A B: UU}, Id A B -> Equiv A B.
 Proof. intros A B p.
+       Check (@id UU).
        exists (transport (@id UU) p).
 (*     apply transport_isequiv with (P := idU). (** closes the goal *) *)
        apply h249_i.
@@ -308,12 +322,11 @@ Definition fiber  {A B: UU} (f: A -> B) (y: B): UU := ∑ x: A, Id (f x) y.
 Definition isSurj {A B: UU} (f: A -> B): UU := ∏ (y: B), fiber f y.
 (** total *)
 Definition totalA {A: UU} (P Q: A -> UU) (f: ∏ x: A, P x -> Q x): (∑ x: A, P x) -> (∑ x: A, Q x).
-Proof. intro w. exact { (pr1 w); (f (pr1 w) (pr2 w))}. Defined.
+Proof. intro w. exact { (pr1 w); (f (pr1 w) (pr2 w)) }. Defined.
 
 Definition isContr  (A: UU): UU := ∑ a: A, ∏ x: A, Id a x.
 Definition isContrP {A: UU} (P: A -> UU): UU :=  ∏ x: A, isContr (P x).
 Definition isContrf {A B: UU} (f: A -> B): UU := ∏ y: B, isContr (fiber f y).
-
 
 Definition fibration (X: UU) := X -> UU.
 Definition section {X: UU} (P: fibration X):= ∏ x: X, P x.
@@ -325,7 +338,6 @@ Definition retract (A B: UU) := ∑ r: A -> B, ∑ s: B -> A, ∏ y: B, Id (r (s
 (* WFE *)
 Definition wfunext_def: UU := ∏  (A: UU) (P: A -> UU),
   (∏x: A, isContr (P x)) -> isContr (∏x: A, P x).
-Axiom WFE: wfunext_def.
 
 (* /axioms *)
 
@@ -461,7 +473,7 @@ Defined.
 
 Definition fibeq {A: UU} (P Q: A -> UU) (f: ∏x: A, (P x -> Q x)) := ∏x: A, isequiv (f x).
 
-Lemma h439_AA: ∏ {A: UU} (P Q: A -> UU) (f: ∏x: A, (P x -> Q x)),
+Lemma h439: ∏ {A: UU} (P Q: A -> UU) (f: ∏x: A, (P x -> Q x)),
   @fibeq A P Q f <-> isequiv (@totalA A P Q f).
 Proof. intros. 
         specialize (fun x => @h432 _ _  (f x)); intro H.
@@ -511,22 +523,6 @@ Proof. intros A B f e1 e2.
 Defined.
 
 Lemma h442: ∏ {A B X: UU} (e: Equiv A B), Equiv (X -> A) (X -> B).
-Proof. intros A B X e.
-        destruct e as (f, e).
-        assert (H: ∑ p: Id A B, Id {f; e} (idtoeqv p)).
-        {  unshelve econstructor.
-          + apply ua_f in e. exact e.
-          + cbn. unfold ua_f.
-             destruct (h249_ii (UA A B)).
-             destruct pr4 as (c, d). 
-             unfold compose, homotopy, id in *.
-             specialize (c ({f; e})). easy.
-        }
-        destruct H as (p, q).
-        induction p. apply h2412_i.
-Defined.
-
-Lemma h442_A: ∏ {A B X: UU} (e: Equiv A B), Equiv (X -> A) (X -> B).
 Proof. intros A B X (f, e).
         unshelve econstructor.
         - exact (fun (a: (X -> A)) (x: X) => f (a x)).
@@ -547,22 +543,11 @@ Proof. intros A B X (f, e).
          + exists id. now compute.
 Defined.
 
+
 Corollary h443: ∏ {A: UU} (P: A -> UU) (icP: isContrP P),
   Equiv (A -> ∑ x: A, P x) (A -> A).
-Proof. intros A P icP. apply h442.
-        unshelve econstructor.
-        + exact pr1.
-        + apply h432. unfold isContrf.
-          specialize (@h434 A P); intro H.
-          intro a.
-          specialize (@h436_ii _ _ (H a)); intro HH.
-          apply HH. easy.
-Defined.
-
-Corollary h443_A: ∏ {A: UU} (P: A -> UU) (icP: isContrP P),
-  Equiv (A -> ∑ x: A, P x) (A -> A).
 Proof. intros A P icP.
-        apply h442_A.
+        apply h442.
         unshelve econstructor.
         + exact pr1.
         + apply h432. unfold isContrf.
@@ -572,14 +557,23 @@ Proof. intros A P icP.
           apply HH. easy.
 Defined.
 
-Theorem h444_A: UA_def -> wfunext_def.
-Proof. unfold UA_def, wfunext_def.
-        intros U A P Hic.
-        set (alpha := pr1 (@h443_A A P Hic)).
-        set (cc    := pr2 (@h443_A A P Hic)).
-        apply h432 in cc. unfold isContrf in cc.
-        specialize (cc id).
-        assert (R: @retract (fiber alpha id) (∏ x : A, P x)).
+Theorem h444: wfunext_def.
+Proof. unfold wfunext_def.
+        intros A P Hic.
+        set (alpha := pr1 (@h443 A P Hic)).
+        set (cc    := pr2 (@h443 A P Hic)).
+        unfold pr2 in cc (** we know that UA makes the arrow type "->" preserve equivalences
+                             that is "Equiv A -> B" gives "Equiv (X -> A) (X -> B)" for some
+                             type "X" *).
+        apply h432 in cc (** a function type instance being an equivalence can also be 
+                             identified via its fibers being contractible spaces *).
+        unfold isContrf in cc. cbn in cc, alpha.
+        specialize (cc id). (** needs a retraction proof: "retract A B" := 
+                                there are "r: A -> B" and "s: B -> A" s.t. "r o s =_B id_B".
+                                This is necessary, since "retract A B" -> "isContr A" -> "isContr B"  
+                             *)
+        assert (R: @retract (fiber (λ (a : A -> ∑ x : A, P x) (x : A), pr1 (a x)) id) 
+                            (∏ x : A, P x)).
         { unshelve econstructor.
           - intro X.
             destruct X as (g, p).
@@ -587,22 +581,32 @@ Proof. unfold UA_def, wfunext_def.
           - cbn. unshelve econstructor.
             + intro f. unfold alpha in *. cbn in *.
               exact ({fun x: A => {x; (f x)}; refl}).
-            + intros. cbn. easy. 
+            + intros. cbn. easy.
         }
-        specialize (@h437 _ _ R); intros HH.
-        now apply HH.
+        specialize (@h437 _ _ R); intros HH; apply HH (** done *).
+        easy.
 Defined.
 
-Theorem h445_A: wfunext_def -> funext_def_qinv.
-Proof. unfold wfunext_def, funext_def_qinv.
+Theorem h445: wfunext_def -> funext_def_qinv.
+Proof. (* intros. exact FE. (** "for sure, no use of FE!" *) *)
+        unfold wfunext_def, funext_def_qinv.
         intros H A P f g.
         apply h249_ii.
-        set (alpha := (fun g: (∏ x: A, P x) => happly f g)).
-        apply h439_AA.
-        apply h432. 
-        apply h4310.
-        apply h438.
-        assert (retract (∏ x : A, ∑ a : P x, Id (f x) a) (∑ x : ∏ x : A, P x, ∏ a : A, Id (f a) (x a))).
+        apply h439 (** with this "happly f g" is written as total space of the
+                       sections ― no more dependening on "g" *).
+        Check (totalA (Id f) (homotopy f) (happly f)).
+        apply h432 (** a function type instance being an equivalence can also be
+                       identified via its fibers being contractible spaces *).
+        unfold isContrf.
+        apply h4310 (** if some "f: A -> B" is a contractibe function, then types 
+                        "A" and "B" must be contractibe *).
+        apply h438 (** trivial since there exists "f" **).
+        unfold homotopy. (** needs a retraction proof: "retract A B" := 
+                             there are "r: A -> B" and "s: B -> A" s.t. "r o s =_B id_B".
+                             This is necessary, since "retract A B" -> "isContr A" -> "isContr B"  
+                          *)
+        assert (R: retract (∏ x : A, ∑ a : P x, Id (f x) a) 
+                           (∑ x : ∏ x : A, P x, ∏ a : A, Id (f a) (x a))).
         { unshelve econstructor.
           - eapply @h431.
           - unshelve econstructor.
@@ -611,14 +615,13 @@ Proof. unfold wfunext_def, funext_def_qinv.
             + cbn. unfold h431, h431_i. intros.
               destruct y. cbn. easy.
         }
-        apply h437 in X. easy.
-        apply H. intros; apply h438.
+        specialize (@h437 _ _ R); intros HH; apply HH; apply H (** thanks to this retraction, it remains
+                                                                   to show ... *).
+        intros; apply h438 (** trivial since there exists "f x" *).
 Defined.
 
-Theorem main: UA_def -> funext_def_qinv.
-Proof. intro UA. 
-        now apply h444_A, h445_A in UA.
-Qed.
+Theorem main: funext_def_qinv.
+Proof. now apply h445, h444. Qed.
 
 
 
