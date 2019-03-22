@@ -31,7 +31,7 @@ Arguments pr2 {_ _} _.
 
 Notation "{ x ; .. ; y ; z }" := (tpair _ x .. (tpair _ y z) ..).
 
-Notation "'∑'  x .. y , P" := (total2 (fun x => .. (total2 (fun y => P)) ..))
+Notation "'∑'  x .. y , P" := (total2 (λ x, .. (total2 (λ y, P)) ..))
 (at level 200, x binder, y binder, right associativity) : type_scope.
 
 (* paths *)
@@ -238,7 +238,7 @@ Inductive Rec (A : Type) :=
   In : (A -> A) -> Rec A.
 
 Fail Definition Y {A: Type} := 
-  fun f: (A -> A -> Type) => (fun x:A => (f x x)) (fun x:A => (f x x)).
+  λ f: (A -> A -> Type) => (λ x:A => (f x x)) (λ x:A => (f x x)).
 *)
 
 (* axioms *)
@@ -287,9 +287,8 @@ Defined.
 (* UA *)
 Definition idtoeqv: ∏ {A B: UU}, Id A B -> Equiv A B.
 Proof. intros A B p.
-       Check (@id UU).
        exists (transport (@id UU) p).
-(*     apply transport_isequiv with (P := idU). (** closes the goal *) *)
+(*     apply transport_isequiv with (P := idU). (** defines it *) *)
        apply h249_i.
        unshelve econstructor.
        + exact (transport _ (inverse p)).
@@ -357,8 +356,24 @@ Proof. intros X A P (g, cc) x.
         exists (g x). apply cc.
 Defined.
 
-Lemma h432: ∏ {A B: UU} (f: A -> B), Equiv (isContrf f) (isequiv f).
-Proof. Admitted.
+Corollary h432c: ∏ {A B: UU} (f: A -> B) (e: isequiv f) (x x':A) (y: B),
+  Id (f x) y /\ Id (f x') y -> Id x x'.
+Proof. intros A B f e x x' y (p, q).
+        apply h249_ii in e.
+        destruct e as (g, (cc0, cc1)).
+        unfold homotopy, compose, id in *.
+        apply Id_eql in p. apply Id_eql in q.
+        pose proof cc1 as cc2.
+        specialize (cc1 x).
+        specialize (cc2 x').
+        assert (g (f x)  = g y) by now rewrite p.
+        assert (g (f x') = g y) by now rewrite q.
+        apply Id_eql in cc1. apply Id_eql in cc2.
+        rewrite cc2 in H0.
+        rewrite cc1 in H.
+        rewrite <- H in H0.
+        now rewrite H0.
+Qed.
 
 Lemma h433: ∏ {A: UU} (P Q: A -> UU) {x: A} {v: Q x} (f: ∏ x: A, (P x -> Q x)),
   Equiv (fiber (totalA P Q f) {x; v}) (fiber (f x) v).
@@ -419,8 +434,7 @@ Proof. intros A B f Hs.
          exact (cc1 y).
 Qed.
 
-Lemma h436_i: ∏ {A B: UU} (e: Equiv A B),
-  isContr A -> isContr B.
+Lemma h436_i: ∏ {A B: UU} (e: Equiv A B), isContr A -> isContr B.
 Proof. intros A B e alpha.
        destruct alpha as (a, P).
        destruct e as (f, iseqf).
@@ -435,24 +449,23 @@ Proof. intros A B e alpha.
          now induction P.
 Defined.
 
-Lemma h436_ii: ∏ {A B: UU} (e: Equiv A B),
-  isContr B -> isContr A.
+Lemma h436_ii: ∏ {A B: UU} (e: Equiv A B), isContr B -> isContr A.
 Proof. intros A B e alpha.
-       destruct alpha as (b, P).
-       destruct e as (f, iseqf).
-       unshelve econstructor.
-       + exact (pr1 (pr2 iseqf) b).
-       + intro a.
-         destruct iseqf as ((g, Hg), (h, Hh)).
-         cbn.
-         unfold homotopy, compose, id in *.
-         specialize (P (f a)).
-         specialize (Hh a).
-         apply Id_eql in P. 
-         now rewrite P in *.
+        destruct alpha as (b, P).
+        destruct e as (f, iseqf).
+        unshelve econstructor.
+        + exact (pr1 (pr2 iseqf) b).
+        + intro a.
+          destruct iseqf as ((g, Hg), (h, Hh)).
+          cbn.
+          unfold homotopy, compose, id in *.
+          specialize (P (f a)).
+          specialize (Hh a).
+          apply Id_eql in P. 
+          now rewrite P in *.
 Defined.
 
-Lemma h437: ∏ {A B: UU} (re: @retract A B), isContr A -> isContr B.
+Lemma h437: ∏ {A B: UU} (re: retract A B), isContr A -> isContr B.
 Proof. intros A B e alpha.
        destruct alpha as (a, P).
        destruct e as (r, (s, eps)).
@@ -470,13 +483,35 @@ Proof. intros.
         - intro p. destruct p as (x, p).
           now induction p.
 Defined.
+(*
+Lemma h432_i: ∏ {A B: UU} (f: A -> B), isequiv f -> isContrf f.
+ Proof. intros A B f e.
+        specialize (@h436_i  A B {f; e}); intros Hi.
+        specialize (@h436_ii A B {f; e}); intros Hii.
+        specialize (@h432c A B f e); intro H.
+        apply h249_ii in e.
+        destruct e as (g, (cc0, cc1)).
+        unfold homotopy, compose, id in *.
+        unfold isContrf. intro y.
+        unfold fiber.
+        unshelve econstructor.
+        - apply h438. exact (f (g y)).
+        - intro x. eapply cc0.
+ induction r. cbn in *.
+          apply H.
+        - unfold fiber. intros (x, p).          
+          dependent induction p. cbn. 
+ Admitted. *)
+
+Lemma h432: ∏ {A B: UU} (f: A -> B), Equiv (isContrf f) (isequiv f).
+Proof. Admitted.
 
 Definition fibeq {A: UU} (P Q: A -> UU) (f: ∏x: A, (P x -> Q x)) := ∏x: A, isequiv (f x).
 
 Lemma h439: ∏ {A: UU} (P Q: A -> UU) (f: ∏x: A, (P x -> Q x)),
   @fibeq A P Q f <-> isequiv (@totalA A P Q f).
 Proof. intros. 
-        specialize (fun x => @h432 _ _  (f x)); intro H.
+        specialize (λ x, @h432 _ _  (f x)); intro H.
         specialize (@h432 _ _ (totalA P Q f)); intro HH.
         unfold fibeq.
         assert (((∏ x : A, isequiv (f x)) <-> ((∏ x : A, isContrf (f x))))).
@@ -525,7 +560,7 @@ Defined.
 Lemma h442: ∏ {A B X: UU} (e: Equiv A B), Equiv (X -> A) (X -> B).
 Proof. intros A B X (f, e).
         unshelve econstructor.
-        - exact (fun (a: (X -> A)) (x: X) => f (a x)).
+        - exact (λ (a: (X -> A)) (x: X), f (a x)).
         - assert (H: ∑p: Id A B, Id {f; e} (idtoeqv p)).
           { unshelve econstructor.
              + apply ua_f in e. exact e.
@@ -544,7 +579,7 @@ Proof. intros A B X (f, e).
 Defined.
 
 
-Corollary h443: ∏ {A: UU} (P: A -> UU) (icP: isContrP P),
+Corollary h443: ∏ {A: UU} (P: A -> UU) (icP: isContrP P), 
   Equiv (A -> ∑ x: A, P x) (A -> A).
 Proof. intros A P icP.
         apply h442.
@@ -557,67 +592,134 @@ Proof. intros A P icP.
           apply HH. easy.
 Defined.
 
+(*
+   given "ua" show that the type 
+      "∏ x : A, isContr (P x) -> isContr (∏ x : A, P x)"
+   is inhabited.
+
+1. lemma h442:
+  An important consequence of UA is that
+  it makes the arrow type "->" preserve equivalences.
+  That is "Equiv A -> B" gives "Equiv (X -> A) (X -> B)" 
+  for some type "X".
+
+2. Corollary h443: 
+  "Equiv (A -> ∑ x: A, P x) (A -> A)" holds with the obvious
+   underlying function: "λa: (A ->  ∑x: A, P x) (x: A), pr1 (a x)"
+   being an equivalence: 
+
+       "isequiv (λ (a : A -> ∑ x : A, P x) (x : A), pr1 (a x))".
+
+3. lemma h432: 
+  an equivalence can also be identified via its fibers: all contractible.
+  A  _____                 B  _____
+    |     |                  |     |   fiber of f at "y: B" is defined as 
+    |  x  | ------ f ----->  |  y  |   "∑ x: A, Id (f x) y". When f is an equivalence
+    |_____|                  |_____|   all its fibers are contractibe.
+
+         "isContr (fiber (λ (a : A -> ∑ x : A, P x) (x : A), pr1 (a x)) id)".
+
+4.if we can prove that
+  "(fiber (λ (a : A -> ∑ x : A, P x) (x : A), pr1 (a x)) id)" is a retract of 
+  "(∏ x : A, P x)", then we are done
+
+                                       ||
+                                       vv
+
+5. since "retract A B -> isContr A -> isContr B" thanks to h437. 
+*)
+
 Theorem h444: wfunext_def.
 Proof. unfold wfunext_def.
         intros A P Hic.
-        set (alpha := pr1 (@h443 A P Hic)).
-        set (cc    := pr2 (@h443 A P Hic)).
-        unfold pr2 in cc (** we know that UA makes the arrow type "->" preserve equivalences
-                             that is "Equiv A -> B" gives "Equiv (X -> A) (X -> B)" for some
-                             type "X" *).
-        apply h432 in cc (** a function type instance being an equivalence can also be 
-                             identified via its fibers being contractible spaces *).
-        unfold isContrf in cc. cbn in cc, alpha.
-        specialize (cc id). (** needs a retraction proof: "retract A B" := 
-                                there are "r: A -> B" and "s: B -> A" s.t. "r o s =_B id_B".
-                                This is necessary, since "retract A B" -> "isContr A" -> "isContr B"  
-                             *)
-        assert (R: @retract (fiber (λ (a : A -> ∑ x : A, P x) (x : A), pr1 (a x)) id) 
-                            (∏ x : A, P x)).
+        (** 2 *)
+        specialize (pr2 (h443 P Hic)); intros uf_equiv; cbn in uf_equiv.
+        (** 3 *)
+        apply h432 in uf_equiv.
+        unfold isContrf in uf_equiv; cbn in uf_equiv.
+        specialize (uf_equiv id).
+        (** 4 *)
+        assert (R: retract (fiber (λ (a : A -> ∑ x : A, P x) (x : A), pr1 (a x)) id) 
+                           (∏ x : A, P x)).
         { unshelve econstructor.
           - intro X.
             destruct X as (g, p).
-            exact (fun x => @transport A P _ _ ((@happly _ _ _ _ p) x) (pr2 (g x))).
+            exact (λ x, @transport A P _ _ ((@happly _ _ _ _ p) x) (pr2 (g x))).
           - cbn. unshelve econstructor.
-            + intro f. unfold alpha in *. cbn in *.
-              exact ({fun x: A => {x; (f x)}; refl}).
+            + intro f. cbn in *.
+              exact ({λ x: A, {x; (f x)}; refl}).
             + intros. cbn. easy.
         }
-        specialize (@h437 _ _ R); intros HH; apply HH (** done *).
+        (** 5 *)
+        specialize (@h437 _ _ R); intros HH. apply HH.
         easy.
 Defined.
+
+(*
+   given 
+      "(∏ x : A, isContr (P x)) -> isContr (∏ x : A, P x)" and
+      "f, g : ∏ x : A, P x"
+   show that the type 
+      "qinv (happly f g)"
+   is inhabited.
+
+1. we have "isequiv (happly f g)".
+
+2. we can write "happly f g" as total type of sections:
+      "isequiv (totalA (Id f) (homotopy f) (happly f)):
+         ∑ (h: ∏ x: A, P(x)), Id f h ->  ∑ (h: ∏ x: A, P(x)), homotopy f g"
+
+3. lemma h432: 
+  an equivalence is a contractible function (all fibers are contractibe):
+      "isContrf (totalA (Id f) (homotopy f) (happly f))"
+
+4. if some "f: A -> B" is a contractibe function, 
+   then types "A" and "B" must be contractibe.
+      * (i)  "isContr (∑ (h: ∏ x: A, P(x)), Id f h)"
+      * (ii) "isContr (∑ (h: ∏ x: A, P(x)), homotopy f h)"
+
+5. (i) is trivial since, there exists "f" itself. 
+
+6. (ii) requires a retraction proof:
+      "(∏ x : A, ∑ a : P x, Id (f x) a)" is a retraction of
+      "(∑ h : ∏ x : A, P x, ∏ a : A, Id (f a) (h a))".
+
+7. "retract A B -> isContr A -> isContr B" thanks to h437. 
+      "isContr (∏ x : A, ∑ a : P x, Id (f x) a)"
+
+8. follows from the assumption.
+*)
 
 Theorem h445: wfunext_def -> funext_def_qinv.
 Proof. (* intros. exact FE. (** "for sure, no use of FE!" *) *)
         unfold wfunext_def, funext_def_qinv.
         intros H A P f g.
+        (** 1 *)
         apply h249_ii.
-        apply h439 (** with this "happly f g" is written as total space of the
-                       sections ― no more dependening on "g" *).
-        Check (totalA (Id f) (homotopy f) (happly f)).
-        apply h432 (** a function type instance being an equivalence can also be
-                       identified via its fibers being contractible spaces *).
-        unfold isContrf.
-        apply h4310 (** if some "f: A -> B" is a contractibe function, then types 
-                        "A" and "B" must be contractibe *).
-        apply h438 (** trivial since there exists "f" **).
-        unfold homotopy. (** needs a retraction proof: "retract A B" := 
-                             there are "r: A -> B" and "s: B -> A" s.t. "r o s =_B id_B".
-                             This is necessary, since "retract A B" -> "isContr A" -> "isContr B"  
-                          *)
+        (** 2 *)
+        apply h439.
+        (** 3 *) 
+        apply h432. unfold isContrf.
+        (** 4 *)
+        apply h4310. 
+        (** 5 *)
+        apply h438.
+        (** 6 *)
+        unfold homotopy. 
         assert (R: retract (∏ x : A, ∑ a : P x, Id (f x) a) 
                            (∑ x : ∏ x : A, P x, ∏ a : A, Id (f a) (x a))).
         { unshelve econstructor.
           - eapply @h431.
           - unshelve econstructor.
-            + specialize (@h431_i A P (fun x => Id (f x))); intro HH. cbn in HH.
+            + specialize (@h431_i A P (λ x, Id (f x))); intro HH. cbn in HH.
               apply HH. 
             + cbn. unfold h431, h431_i. intros.
               destruct y. cbn. easy.
         }
-        specialize (@h437 _ _ R); intros HH; apply HH; apply H (** thanks to this retraction, it remains
-                                                                   to show ... *).
-        intros; apply h438 (** trivial since there exists "f x" *).
+        (** 7 *)
+        specialize (@h437 _ _ R); intros HH; apply HH.
+        (** 8 *)
+        apply H. intros. apply h438.
 Defined.
 
 Theorem main: funext_def_qinv.
