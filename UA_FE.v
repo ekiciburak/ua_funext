@@ -320,14 +320,30 @@ Proof. intro e.
 (*     exact (pr1 (h249_ii (UA A B))). *)
 Defined.
 
-(* /axioms *)
+Definition idtoeqv_ua {A B : UU} (e : Equiv A B): Id (idtoeqv (ua e)) e.
+Proof. unfold ua.
+        destruct (h249_ii (UA A B)) as (ua, cc).
+        destruct cc as (cc1, cc2). 
+        unfold homotopy, id, compose in *.
+        exact (cc1 e).
+Defined.
 
+Definition ua_idtoeqv {A B : UU} {p : Id A B}: Id (ua (idtoeqv p)) p.
+Proof. unfold ua.
+        destruct (h249_ii (UA A B)) as (ua, cc).
+        destruct cc as (cc1, cc2). cbn.
+        unfold homotopy, id, compose in *.
+        exact (cc2 p).
+Defined.
+
+(* /axioms *)
 
 (* homotopy levels *)
 Definition fiber  {A B: UU} (f: A -> B) (y: B): UU := ∑ x: A, Id (f x) y.
 Definition isSurj {A B: UU} (f: A -> B): UU := ∏ (y: B), fiber f y.
 (** total *)
-Definition totalA {A: UU} (P Q: A -> UU) (f: ∏ x: A, P x -> Q x): (∑ x: A, P x) -> (∑ x: A, Q x).
+Definition totalA {A: UU} (P Q: A -> UU) (f: ∏ x: A, P x -> Q x): 
+  (∑ x: A, P x) -> (∑ x: A, Q x).
 Proof. intro w. exact { (pr1 w); (f (pr1 w) (pr2 w)) }. Defined.
 
 Definition isContr  (A: UU): UU := ∑ a: A, ∏ x: A, Id a x.
@@ -531,8 +547,8 @@ Proof. intros A B e alpha.
           apply Id_eql in P. rewrite P. easy.
 Defined.
 
-Lemma h437C: ∏ {A B: UU} (re: retract A B) (x:A) (y y': B),
-  Id ((pr1 re) x) y /\ Id ((pr1 re) x) y' -> Id y y'.
+Corollary h437D: ∏ {A B: UU} (re: retract A B) (x:A) (y y': B),
+  Id ((pr1 (pr2 re)) y) x /\ Id ((pr1 (pr2 re)) y') x -> Id y y'.
 Proof. intros A B e x y y' (p, q).
         destruct e as (f, (g, cc)). cbn in *.
         pose proof cc as cc1.
@@ -540,8 +556,8 @@ Proof. intros A B e x y y' (p, q).
         specialize (cc1 y').
         apply Id_eql in p.
         apply Id_eql in q.
-        rewrite <- p in cc at 1.
-        rewrite <- q in cc1 at 1.
+        rewrite p in cc at 1.
+        rewrite q in cc1 at 1.
         apply Id_eql in cc.
         apply Id_eql in cc1.
         now rewrite <- cc, <- cc1.
@@ -554,7 +570,6 @@ Proof. intros.
         - intro p. destruct p as (x, p).
           now induction p.
 Defined.
-
 
 Lemma h432: ∏ {A B: UU} (f: A -> B), (isContrf f) <-> (isequiv f).
 Proof. intros. split. apply h432_ii. apply h432_i. Defined.
