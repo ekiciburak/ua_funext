@@ -1,3 +1,3 @@
 # ua_funext
 
-A not-very-long proof of `UA -> FE` in Coq. Open the source file using `-type-in-type` option to be able to run through it.
+A not-so-long proof of `UA -> FE` in Coq.

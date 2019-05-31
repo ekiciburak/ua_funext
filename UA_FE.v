@@ -1,12 +1,6 @@
 Require Import  Coq.Program.Equality. (* enables "dependent induction" *)
 Require Import Setoid.
 
-Ltac verysimple := easy.
-
-Definition UU := Type.
-
-Identity Coercion fromUUtoType : UU >-> Sortclass.
-
 Notation "'∏'  x .. y , P" := (forall x, .. (forall y, P) ..)
   (at level 200, x binder, y binder, right associativity) : type_scope.
   (* type this in emacs in agda-input method with \prod *)
@@ -16,10 +10,10 @@ Notation "'λ' x .. y , t" := (fun x => .. (fun y => t) ..)
 (* type this in emacs in agda-input method with \lambda *)
 
 
-Definition compose {A B C: UU} (f: A -> B) (g: B -> C): A -> C.
+Definition compose {A B C: Type} (f: A -> B) (g: B -> C): A -> C.
 Proof. intro a. now apply g, f. Defined.
 
-Record total2 { T: UU } ( P: T -> UU ): UU := 
+Record total2 { T: Type } ( P: T -> Type ): Type := 
   tpair 
   { pr1 : T;
     pr2 : P pr1 
@@ -35,64 +29,64 @@ Notation "'∑'  x .. y , P" := (total2 (λ x, .. (total2 (λ y, P)) ..))
 (at level 200, x binder, y binder, right associativity) : type_scope.
 
 (* paths *)
-Inductive Id {A: UU}: A -> A -> UU: UU :=
+Inductive Id {A: Type}: A -> A -> Type: Type :=
   refl: forall a, Id a a.
 Arguments refl {A a} , [A] a.
 
 Print Id_rect.
 
-Definition Id_eql: ∏ {A: UU} (a b: A), Id a b -> a = b.
+Definition Id_eql: ∏ {A: Type} (a b: A), Id a b -> a = b.
 Proof. intros A a b p. now induction p. Defined.
 
-Definition Id_eqr: ∏ {A: UU} (a b: A), a = b -> Id a b.
+Definition Id_eqr: ∏ {A: Type} (a b: A), a = b -> Id a b.
 Proof. intros A a b p. now rewrite p. Defined.
 
 (* groupoid structure *)
 
-Definition inverse {A: UU} {a b: A}: Id a b -> Id b a.
+Definition inverse {A: Type} {a b: A}: Id a b -> Id b a.
 Proof. intro p. now induction p. Defined.
 
-Definition concat {A: UU} {a b c: A}: Id a b -> Id b c -> Id a c.
+Definition concat {A: Type} {a b c: A}: Id a b -> Id b c -> Id a c.
 Proof. intros p q. now induction p; induction q. Defined.
 
-Definition symm {A: UU} {a b: A}: Id a b -> Id b a.
+Definition symm {A: Type} {a b: A}: Id a b -> Id b a.
 Proof. intro p. now induction p. Defined.
 (* /groupoid structure *)
 
-Definition ap {A B: UU} {a b: A} (f: A -> B): Id a b -> Id (f a) (f b).
+Definition ap {A B: Type} {a b: A} (f: A -> B): Id a b -> Id (f a) (f b).
 Proof. intro p. now induction p. Defined.
 
 (** prove ap + concat, ap + inverse basics here *)
-Lemma ap_refl: ∏ {A B: UU} {a: A} (f: A -> B), Id (ap f (refl a)) (refl (f a)).
+Lemma ap_refl: ∏ {A B: Type} {a: A} (f: A -> B), Id (ap f (refl a)) (refl (f a)).
 Proof. intros. now cbn. Defined.
 
-Lemma app_concat: ∏ {A B: UU} {a b c: A} (f: A -> B) (p: Id a b) (q: Id b c),
+Lemma app_concat: ∏ {A B: Type} {a b c: A} (f: A -> B) (p: Id a b) (q: Id b c),
 Id (ap f (concat p q)) (concat (ap f p) (ap f q)).
 Proof. intros. now induction p, q. Defined.
 
-Lemma concat_inverse_l: ∏ {A: UU} (a b: A) (p: Id a b),
+Lemma concat_inverse_l: ∏ {A: Type} (a b: A) (p: Id a b),
   Id (concat (inverse p) p) refl.
 Proof. intros. now induction p. Defined.
 
-Lemma concat_inverse_r: ∏ {A: UU} (a b: A) (p: Id a b), Id (concat p (inverse p)) refl.
+Lemma concat_inverse_r: ∏ {A: Type} (a b: A) (p: Id a b), Id (concat p (inverse p)) refl.
 Proof. intros. now induction p. Defined.
 (* /paths *)
 
 (* transport and facts *)
 (** dependent application -- dependent lifting requires transport *)
-Definition transport {A: UU} (P: A -> UU) {a b: A} (p: Id a b): P a -> P b.
+Definition transport {A: Type} (P: A -> Type) {a b: A} (p: Id a b): P a -> P b.
 Proof. now induction p. Defined.
 
-Definition apd {A: UU} {P: A -> UU} (f: ∏ a: A, P a) {a b: A} (p: Id a b): 
+Definition apd {A: Type} {P: A -> Type} (f: ∏ a: A, P a) {a b: A} (p: Id a b): 
   Id (transport P p (f a)) (f b).
 Proof. now induction p. Defined.
 
 (** h235 *)
-Definition transportconst {A: UU} (B: UU) {a b: A} (p: Id a b) (c: B):
+Definition transportconst {A: Type} (B: Type) {a b: A} (p: Id a b) (c: B):
   Id (@transport A (λ a, B) a b p c) c.
 Proof. now induction p. Defined.
 
-Definition constr1 {X : UU} (P : X -> UU) {x x' : X} (e : Id x x') :
+Definition constr1 {X : Type} (P : X -> Type) {x x' : X} (e : Id x x') :
   ∑ (f : P x -> P x'),
   ∑ (ee : ∏ p : P x, (Id (tpair _ x p) (tpair _ x' (f p)))), ∏ (pp : P x), Id (ap pr1 (ee pp)) e.
 Proof. induction e. 
@@ -101,57 +95,57 @@ Proof. induction e.
        - unshelve econstructor; easy.
 Defined.
 
-Definition transportf {X : UU} (P : X -> UU) {x x' : X} (e: Id x x'): 
+Definition transportf {X : Type} (P : X -> Type) {x x' : X} (e: Id x x'): 
   P x -> P x' := pr1 (constr1 P e).
 
-Definition transportD {A: UU} (B: A -> UU) (C: ∏ a : A, B a -> UU)
+Definition transportD {A: Type} (B: A -> Type) (C: ∏ a : A, B a -> Type)
            {x1 x2: A} (p: Id x1 x2) (y: B x1) (z: C x1 y): C x2 (transportf _ p y).
 Proof. now induction p. Defined.
 
-Lemma transport_eq: ∏ {X : UU} (P : X -> UU) {x x' : X} (e: Id x x'),
+Lemma transport_eq: ∏ {X : Type} (P : X -> Type) {x x' : X} (e: Id x x'),
   Id (transport P e) (transportf P e).
 Proof. intros. now induction e. Defined.
 
 (** Armin's thesis => lift *)
-Lemma h1167: ∏ {A: UU} (P: A -> UU) {x y: A} (u: P x) (p: Id x y), 
+Lemma h1167: ∏ {A: Type} (P: A -> Type) {x y: A} (u: P x) (p: Id x y), 
   Id (tpair _ x u) (tpair _ y (transport P p u)).
 Proof. intros. now induction p. Defined.
 
 (** h238 *)
-Definition apdconst {A B: UU} (f: A -> B) {a b: A} (p: Id a b):
+Definition apdconst {A B: Type} (f: A -> B) {a b: A} (p: Id a b):
   Id (apd f p) (concat (transportconst B p (f a)) (ap f p)).
 Proof. now induction p. Defined.
 
-Lemma transport_refl: ∏ {A: UU} {P: A -> UU} {a b: A} (p: Id a b) (u: P a),
+Lemma transport_refl: ∏ {A: Type} {P: A -> Type} {a b: A} (p: Id a b) (u: P a),
   Id (transport P refl u) u.
 Proof. intros. now induction p. Defined.
 
 (* diprect products *)
-Definition dirprod (A B : UU): UU := ∑ a: A, B.
+Definition dirprod (A B : Type): Type := ∑ a: A, B.
 (* /direct products *)
 
 (* hompotopy *)
-Definition homotopy {A: UU} {P: A -> UU} (f g: (∏ a: A, P a)): UU :=
+Definition homotopy {A: Type} {P: A -> Type} (f g: (∏ a: A, P a)): Type :=
   ∏ a: A, Id (f a) (g a).
 (* /hompotopy *)
 
 (* equivalences *)
-Definition qinv {A B: UU} (f: A -> B): UU :=
+Definition qinv {A B: Type} (f: A -> B): Type :=
   ∑ (g: B -> A), (dirprod (homotopy (compose g f) (@id B))
                           (homotopy (compose f g) (@id A))).
 
-Definition isequiv {A B: UU} (f: A -> B): UU :=
+Definition isequiv {A B: Type} (f: A -> B): Type :=
   dirprod (∑ (g: B -> A),(homotopy (compose g f) (@id B))) 
           (∑ (h: B -> A),(homotopy (compose f h) (@id A))).
 
 
-Definition ishae {A B: UU} (f: A -> B) :=
+Definition ishae {A B: Type} (f: A -> B) :=
   ∑ g: B -> A, 
     ∑ eta: (homotopy (compose f g) (@id A)),
     ∑ eps: (homotopy (compose g f) (@id B)),
       ∏ x: A, Id (ap f (eta x)) (eps (f x)).
 
-Example h249_i: ∏ {A B: UU} {f: A -> B}, qinv f -> isequiv f.
+Example h249_i: ∏ {A B: Type} {f: A -> B}, qinv f -> isequiv f.
 Proof. intros A B f eq.
        destruct eq as (g, (pd1, pd2)).
        unshelve econstructor.
@@ -159,7 +153,7 @@ Proof. intros A B f eq.
        - exists g. exact pd2.
 Defined.
 
-Example h249_ii: ∏  {A B: UU} {f: A -> B}, isequiv f -> qinv f.
+Example h249_ii: ∏  {A B: Type} {f: A -> B}, isequiv f -> qinv f.
 Proof. intros A B f eq.
        destruct eq as ((g, alpha), (h, beta)).
        unshelve econstructor.
@@ -177,9 +171,9 @@ Proof. intros A B f eq.
 Defined.
 
 (** ~= *)
-Definition Equiv (A B: UU): UU := (∑ f: A -> B, isequiv f).
+Definition Equiv (A B: Type): Type := (∑ f: A -> B, isequiv f).
 
-Lemma h2412_i: ∏ {A: UU}, Equiv A A.
+Lemma h2412_i: ∏ {A: Type}, Equiv A A.
 Proof. intro A.
        unshelve econstructor.
        - exact id.
@@ -188,7 +182,7 @@ Proof. intro A.
          + exists id. now compute.
 Defined.
 
-Lemma h2412_ii: ∏ {A B: UU} (f: Equiv A B), Equiv B A.
+Lemma h2412_ii: ∏ {A B: Type} (f: Equiv A B), Equiv B A.
 Proof. intros.
        destruct f as (f, equivf).
        apply h249_ii in equivf.
@@ -200,7 +194,7 @@ Proof. intros.
          + exists f. exact alpha.
 Defined.
 
-Lemma h2412_iii: ∏ {A B C: UU} (f: Equiv A B) (g: Equiv B C), Equiv A C.
+Lemma h2412_iii: ∏ {A B C: Type} (f: Equiv A B) (g: Equiv B C), Equiv A C.
 Proof. intros.
        destruct f as (f, iseqf).
        destruct g as (g, iseqg).
@@ -251,27 +245,27 @@ Fail Definition Y {A: Type} :=
 (* axioms *)
 
 (* FUNEXT *)
-Definition happly {A: UU} {B: A -> UU} (f g: ∏x: A, B x): (Id f g) -> homotopy f g.
+Definition happly {A: Type} {B: A -> Type} (f g: ∏x: A, B x): (Id f g) -> homotopy f g.
 Proof. intros p a. now induction p. Defined.
 
 (** h293 *)
-Definition funext_def_qinv: UU := ∏  (A: UU) (B: A -> UU) (f g: ∏x:A, B x),
+Definition funext_def_qinv: Type := ∏  (A: Type) (B: A -> Type) (f g: ∏x:A, B x),
   qinv (@happly A B f g).
 Axiom FE: funext_def_qinv.
 
-Definition funext {A: UU} {B: A -> UU} {f g: ∏ x: A, B x}: (∏ x: A, Id (f x) (g x)) -> Id f g.
+Definition funext {A: Type} {B: A -> Type} {f g: ∏ x: A, B x}: (∏ x: A, Id (f x) (g x)) -> Id f g.
 Proof. destruct (FE A B f g) as (inv_happly, cc2).
        exact inv_happly.
 (*     exact (pr1 (FE A B f g)). *)
 Defined.
 
-Definition funext_def_isequiv : ∏  (A: UU) (B: A -> UU) (f g: ∏x:A, B x),
+Definition funext_def_isequiv : ∏  (A: Type) (B: A -> Type) (f g: ∏x:A, B x),
   isequiv (@happly A B f g).
 Proof. intros. apply h249_i.
        exact (FE A B f g).
 Defined.
 
-Definition happly_funext {A: UU} {B: A -> UU} {f g: ∏ x:A, B x} 
+Definition happly_funext {A: Type} {B: A -> Type} {f g: ∏ x:A, B x} 
                          (h: ∏ x:A, Id (f x) (g x)): Id (happly _ _ (funext h)) h.
 Proof. unfold funext.
        destruct (FE A B f g) as (inv_happly, cc).
@@ -281,7 +275,7 @@ Proof. unfold funext.
 (*     exact ((pr1 (pr2 (FE A B f g)) h)). *)
 Defined.
 
-Definition funext_happly {A: UU} {B: A -> UU} {f g: ∏ x: A, B x} 
+Definition funext_happly {A: Type} {B: A -> Type} {f g: ∏ x: A, B x} 
                          (p: Id f g): Id (funext (happly _ _ p)) p.
 Proof. unfold funext.
        destruct (FE A B f g) as (inv_happly, cc).
@@ -292,9 +286,9 @@ Proof. unfold funext.
 Defined.
 
 (* UA *)
-Definition idtoeqv: ∏ {A B: UU}, Id A B -> Equiv A B.
+Definition idtoeqv: ∏ {A B: Type}, Id A B -> Equiv A B.
 Proof. intros A B p.
-       exists (transport (@id UU) p).
+       exists (transport (@id Type) p).
 (*     apply transport_isequiv with (P := idU). (** defines it *) *)
        apply h249_i.
        unshelve econstructor.
@@ -302,17 +296,17 @@ Proof. intros A B p.
        + now induction p.
 Defined.
 
-(** Definition UA_def: UU :=  Equiv (Equiv A B) (Id A B). *)
-Definition UA_def: UU := ∏ (A B: UU), isequiv (@idtoeqv A B).
+(** Definition UA_def: Type :=  Equiv (Equiv A B) (Id A B). *)
+Definition UA_def: Type := ∏ (A B: Type), isequiv (@idtoeqv A B).
 Axiom UA: UA_def.
 
-Definition ua {A B : UU}: (Equiv A B) -> (Id A B).
+Definition ua {A B : Type}: (Equiv A B) -> (Id A B).
 Proof. destruct (h249_ii (UA A B)) as (eqvtoid, cc).
        exact eqvtoid.
 (*     exact (pr1 (h249_ii (UA A B))). *)
 Defined.
 
-Definition ua_f {A B : UU} (f: A-> B): (isequiv f) -> (Id A B).
+Definition ua_f {A B : Type} (f: A-> B): (isequiv f) -> (Id A B).
 Proof. intro e.
        destruct (h249_ii (UA A B)) as (eqvtoid, cc).
        apply eqvtoid.
@@ -320,7 +314,7 @@ Proof. intro e.
 (*     exact (pr1 (h249_ii (UA A B))). *)
 Defined.
 
-Definition idtoeqv_ua {A B : UU} (e : Equiv A B): Id (idtoeqv (ua e)) e.
+Definition idtoeqv_ua {A B : Type} (e : Equiv A B): Id (idtoeqv (ua e)) e.
 Proof. unfold ua.
         destruct (h249_ii (UA A B)) as (ua, cc).
         destruct cc as (cc1, cc2). 
@@ -328,7 +322,7 @@ Proof. unfold ua.
         exact (cc1 e).
 Defined.
 
-Definition ua_idtoeqv {A B : UU} {p : Id A B}: Id (ua (idtoeqv p)) p.
+Definition ua_idtoeqv {A B : Type} {p : Id A B}: Id (ua (idtoeqv p)) p.
 Proof. unfold ua.
         destruct (h249_ii (UA A B)) as (ua, cc).
         destruct cc as (cc1, cc2). cbn.
@@ -339,32 +333,32 @@ Defined.
 (* /axioms *)
 
 (* homotopy levels *)
-Definition fiber  {A B: UU} (f: A -> B) (y: B): UU := ∑ x: A, Id (f x) y.
-Definition isSurj {A B: UU} (f: A -> B): UU := ∏ (y: B), fiber f y.
+Definition fiber  {A B: Type} (f: A -> B) (y: B): Type := ∑ x: A, Id (f x) y.
+Definition isSurj {A B: Type} (f: A -> B): Type := ∏ (y: B), fiber f y.
 (** total *)
-Definition totalA {A: UU} (P Q: A -> UU) (f: ∏ x: A, P x -> Q x): 
+Definition totalA {A: Type} (P Q: A -> Type) (f: ∏ x: A, P x -> Q x): 
   (∑ x: A, P x) -> (∑ x: A, Q x).
 Proof. intro w. exact { (pr1 w); (f (pr1 w) (pr2 w)) }. Defined.
 
-Definition isContr  (A: UU): UU := ∑ a: A, ∏ x: A, Id a x.
-Definition isContrP {A: UU} (P: A -> UU): UU :=  ∏ x: A, isContr (P x).
-Definition isContrf {A B: UU} (f: A -> B): UU := ∏ y: B, isContr (fiber f y).
+Definition isContr  (A: Type): Type := ∑ a: A, ∏ x: A, Id a x.
+Definition isContrP {A: Type} (P: A -> Type): Type :=  ∏ x: A, isContr (P x).
+Definition isContrf {A B: Type} (f: A -> B): Type := ∏ y: B, isContr (fiber f y).
 
-Definition fibration (X: UU) := X -> UU.
-Definition section {X: UU} (P: fibration X):= ∏ x: X, P x.
-Definition retract (A B: UU) := ∑ r: A -> B, ∑ s: B -> A, ∏ y: B, Id (r (s y)) y.
+Definition fibration (X: Type) := X -> Type.
+Definition section {X: Type} (P: fibration X):= ∏ x: X, P x.
+Definition retract (A B: Type) := ∑ r: A -> B, ∑ s: B -> A, ∏ y: B, Id (r (s y)) y.
 (*/homotopy levels *)
 
 (* axioms *)
 
 (* WFE *)
-Definition wfunext_def: UU := ∏  (A: UU) (P: A -> UU),
+Definition wfunext_def: Type := ∏  (A: Type) (P: A -> Type),
   (∏x: A, isContr (P x)) -> isContr (∏x: A, P x).
 
 (* /axioms *)
 
 (** Armin's thesis -- preparatory lemmas *)
-Lemma h431: ∏ {X: UU} (A: X -> UU) (P: ∏ x: X, (A x -> UU)),
+Lemma h431: ∏ {X: Type} (A: X -> Type) (P: ∏ x: X, (A x -> Type)),
   (∏ x: X, ∑ a: A x, P x a) -> (∑ g: (∏ x: X, A x), ∏ x: X, P x (g x)).
 Proof. intros X A P H.
        unshelve econstructor.
@@ -373,14 +367,14 @@ Proof. intros X A P H.
        - intro x. apply H.
 Defined.
 
-Lemma h431_i: ∏ {X: UU} (A: X -> UU) (P: ∏ x: X, (A x -> UU)),
+Lemma h431_i: ∏ {X: Type} (A: X -> Type) (P: ∏ x: X, (A x -> Type)),
   (∑ g: (∏ x: X, A x), ∏ x: X, P x (g x)) -> (∏ x: X, ∑ a: A x, P x a).
 Proof. intros X A P (g, cc) x.
         exists (g x). apply cc.
 Defined.
 
-Corollary h432c: ∏ {A B: UU} (f: A -> B) (e: isequiv f) (x x':A) (y: B),
-  Id (f x) y /\ Id (f x') y -> Id x x'.
+Corollary h432c: ∏ {A B: Type} (f: A -> B) (e: isequiv f) (x x':A) (y: B),
+  dirprod (Id (f x) y) (Id (f x') y) -> Id x x'.
 Proof. intros A B f e x x' y (p, q).
         apply h249_ii in e.
         destruct e as (g, (cc0, cc1)).
@@ -398,19 +392,20 @@ Proof. intros A B f e x x' y (p, q).
         now rewrite H0.
 Qed.
 
-Corollary h432d: ∏ {A B: UU} (f: A -> B) (e: isequiv f) (y: B)
+Corollary h432d: ∏ {A B: Type} (f: A -> B) (e: isequiv f) (y: B)
   (a b: ∑x: A, Id (f x) y), Id a b.
 Proof. intros.
         destruct a as (a, p).
         destruct b as (b, q).
         specialize (@h432c A B f e a b y); intro H.
-        assert (H0: Id (f a) y /\ Id (f b) y ) by easy.
+        assert (H0: dirprod (Id (f a) y) (Id (f b) y) ) by easy.
         specialize (H H0).
         induction H. dependent induction p.
         dependent induction q. easy.
 Defined.
 
-Lemma h432_i: ∏ {A B: UU} (f: A -> B), isequiv f -> isContrf f.
+
+Lemma h432_i: ∏ {A B: Type} (f: A -> B), isequiv f -> isContrf f.
 Proof. intros A B f e.
         unfold isContrf. intro y.
         specialize (@h432d A B f e y); intro H.
@@ -425,7 +420,7 @@ Proof. intros A B f e.
           specialize (H {pr3 y; pr4 y}). easy.
 Defined.
 
-Lemma h432_ii: ∏ {A B: UU} (f: A -> B), isContrf f -> isequiv f.
+Lemma h432_ii: ∏ {A B: Type} (f: A -> B), isContrf f -> isequiv f.
 Proof. unfold isContrf.
         intros A B f e.
         apply h249_i.
@@ -447,7 +442,12 @@ Proof. unfold isContrf.
             now inversion cc. 
 Defined.
 
-Lemma h433: ∏ {A: UU} (P Q: A -> UU) {x: A} {v: Q x} (f: ∏ x: A, (P x -> Q x)),
+Lemma h432: ∏ {A B: Type} (f: A -> B),
+  dirprod ((isContrf f) -> (isequiv f))
+          ((isequiv f) -> (isContrf f)) .
+Proof. intros. split. apply h432_ii. apply h432_i. Defined.
+
+Lemma h433: ∏ {A: Type} (P Q: A -> Type) {x: A} {v: Q x} (f: ∏ x: A, (P x -> Q x)),
   Equiv (fiber (totalA P Q f) {x; v}) (fiber (f x) v).
 Proof. intros A P Q x v f.
        unshelve econstructor.
@@ -474,7 +474,7 @@ Proof. intros A P Q x v f.
                 dependent induction pr4. now cbn.
 Defined.
 
-Lemma h434: ∏ {A: UU} (P: A -> UU) {a: A},
+Lemma h434: ∏ {A: Type} (P: A -> Type) {a: A},
   Equiv (fiber (@pr1 A P) a) (P a).
 Proof. intros.
        unshelve econstructor.
@@ -496,7 +496,7 @@ Proof. intros.
 Qed.
 
 (** supposed to use h432? *)
-Lemma h435: ∏ {A B: UU} (f: A -> B), isequiv f -> isSurj f.
+Lemma h435: ∏ {A B: Type} (f: A -> B), isequiv f -> isSurj f.
 Proof. intros A B f Hs.
        destruct Hs as ((g, cc1), (h, cc2)).
        unshelve econstructor.
@@ -505,7 +505,7 @@ Proof. intros A B f Hs.
          exact (cc1 y).
 Qed.
 
-Lemma h436_i: ∏ {A B: UU} (e: Equiv A B), isContr A -> isContr B.
+Lemma h436_i: ∏ {A B: Type} (e: Equiv A B), isContr A -> isContr B.
 Proof. intros A B e alpha.
        destruct alpha as (a, P).
        destruct e as (f, iseqf).
@@ -520,7 +520,7 @@ Proof. intros A B e alpha.
          now induction P.
 Defined.
 
-Lemma h436_ii: ∏ {A B: UU} (e: Equiv A B), isContr B -> isContr A.
+Lemma h436_ii: ∏ {A B: Type} (e: Equiv A B), isContr B -> isContr A.
 Proof. intros A B e alpha.
         destruct alpha as (b, P).
         destruct e as (f, iseqf).
@@ -536,7 +536,7 @@ Proof. intros A B e alpha.
           now rewrite P in *.
 Defined.
 
-Lemma h437: ∏ {A B: UU} (re: retract A B), isContr A -> isContr B.
+Lemma h437: ∏ {A B: Type} (re: retract A B), isContr A -> isContr B.
 Proof. intros A B e alpha.
         destruct alpha as (a, P).
         destruct e as (r, (s, eps)).
@@ -547,8 +547,8 @@ Proof. intros A B e alpha.
           apply Id_eql in P. rewrite P. easy.
 Defined.
 
-Corollary h437D: ∏ {A B: UU} (re: retract A B) (x:A) (y y': B),
-  Id ((pr1 (pr2 re)) y) x /\ Id ((pr1 (pr2 re)) y') x -> Id y y'.
+Corollary h437D: ∏ {A B: Type} (re: retract A B) (x:A) (y y': B),
+  dirprod (Id ((pr1 (pr2 re)) y) x) (Id ((pr1 (pr2 re)) y') x) -> Id y y'.
 Proof. intros A B e x y y' (p, q).
         destruct e as (f, (g, cc)). cbn in *.
         pose proof cc as cc1.
@@ -563,7 +563,8 @@ Proof. intros A B e x y y' (p, q).
         now rewrite <- cc, <- cc1.
 Qed.
 
-Lemma h438: ∏ {A: UU} (a: A), isContr (∑ x: A, Id a x).
+
+Lemma h438: ∏ {A: Type} (a: A), isContr (∑ x: A, Id a x).
 Proof. intros.
         unshelve econstructor.
         - exists a. easy.
@@ -571,39 +572,51 @@ Proof. intros.
           now induction p.
 Defined.
 
-Lemma h432: ∏ {A B: UU} (f: A -> B), (isContrf f) <-> (isequiv f).
-Proof. intros. split. apply h432_ii. apply h432_i. Defined.
 
-Definition fibeq {A: UU} (P Q: A -> UU) (f: ∏x: A, (P x -> Q x)) := ∏x: A, isequiv (f x).
+Definition fibeq {A: Type} (P Q: A -> Type) (f: ∏x: A, (P x -> Q x)) := ∏x: A, isequiv (f x).
 
-Lemma h439: ∏ {A: UU} (P Q: A -> UU) (f: ∏x: A, (P x -> Q x)),
-  @fibeq A P Q f <-> isequiv (@totalA A P Q f).
+Lemma h439l: ∏ {A: Type} (P Q: A -> Type) (f: ∏x: A, (P x -> Q x)),
+   ((@fibeq A P Q f) -> (isequiv (@totalA A P Q f))).
 Proof. intros. 
-        specialize (λ x, @h432 _ _  (f x)); intro H.
-        specialize (@h432 _ _ (totalA P Q f)); intro HH.
-        unfold fibeq.
-        assert (((∏ x : A, isequiv (f x)) <-> ((∏ x : A, isContrf (f x))))).
-        { split; intros. apply H. easy. apply H. easy. }
-        rewrite H0.
-        assert ((isContrf (totalA P Q f)) <-> (isequiv (totalA P Q f))).
-        { split; intros. apply HH. easy. apply HH. easy. }
-        rewrite <- H1. unfold isContrf.
-
-        split. intros.
+        specialize (λ x, @h432_i _ _  (f x)); intro H.
+        specialize (@h432_i _ _ (totalA P Q f)); intro HH.
+        specialize (λ x, @h432_ii _ _  (f x)); intro Hi.
+        specialize (@h432_ii _ _ (totalA P Q f)); intro HHi.
+        assert (H0: ((∏ x : A, isContrf (f x))) -> ((∏ x : A, isequiv (f x)))).
+        { intros. apply Hi. easy. }
+        apply HHi.
+        unfold isContrf.
+        intros.
         induction y as (x0, v0).
 
         specialize (@h436_ii (fiber (totalA P Q f) {x0; v0}) (fiber (f x0) v0)); 
         intro HHH. apply HHH.
         specialize (@h433 A P Q x0 v0 f); intro HHHH.
-        apply HHHH. easy.
+        apply HHHH.
+        unfold fibeq in *.
+        apply H. easy.
+Defined.
 
-        intros.
+
+Lemma h439r: ∏ {A: Type} (P Q: A -> Type) (f: ∏x: A, (P x -> Q x)),
+   ((isequiv (@totalA A P Q f)) -> (@fibeq A P Q f)).
+Proof. intros. 
+        specialize (λ x, @h432_i _ _  (f x)); intro H.
+        specialize (@h432_i _ _ (totalA P Q f)); intro HH.
+        specialize (λ x, @h432_ii _ _  (f x)); intro Hi.
+        specialize (@h432_ii _ _ (totalA P Q f)); intro HHi.
+        unfold fibeq. intro x. apply Hi.
+        unfold isContrf. intros.
+
+        specialize (@h436_ii (fiber (totalA P Q f) {x; y}) (fiber (f x) y)); 
+        intro HHH.
+        specialize (@h433 A P Q x y f); intro HHHH.
+
         specialize (@h436_i (fiber (totalA P Q f) {x; y}) (fiber (f x) y));
-        intro HHH. apply HHH.
-        specialize (@h433 A P Q x y f); intro HHHH. easy. apply X.
-Qed.
+        intro HHHa. apply HHHa. apply HHHH. apply HH. apply X.
+Defined.
 
-Lemma h4310: ∏ {A B: UU} (f: A -> B), isContr A /\ isContr B -> isContrf f.
+Lemma h4310: ∏ {A B: Type} (f: A -> B), dirprod (isContr A) (isContr B) -> isContrf f.
 Proof. intros A B f (e1, e2).
         set (a := pr1 e1).
         set (b := pr1 e2).
@@ -625,7 +638,7 @@ Proof. intros A B f (e1, e2).
           now induction p.
 Defined.
 
-Lemma h442: ∏ {A B X: UU} (e: Equiv A B), Equiv (X -> A) (X -> B).
+Lemma h442: ∏ {A B X: Type} (e: Equiv A B), Equiv (X -> A) (X -> B).
 Proof. intros A B X (f, e).
         unshelve econstructor.
         - exact (λ (a: (X -> A)) (x: X), f (a x)).
@@ -647,7 +660,7 @@ Proof. intros A B X (f, e).
 Defined.
 
 
-Corollary h443: ∏ {A: UU} (P: A -> UU) (p: ∏ x : A, isContr (P x)), 
+Corollary h443: ∏ {A: Type} (P: A -> Type) (p: ∏ x : A, isContr (P x)), 
   Equiv (A -> ∑ x: A, P x) (A -> A).
 Proof. intros A P p.
         apply h442.
@@ -765,7 +778,7 @@ Proof. (* intros. exact FE. (** "for sure, no use of FE!" *) *)
         (** 1 *)
         apply h249_ii.
         (** 2 *)
-        apply h439.
+        apply h439r.
         (** 3 *) 
         apply h432. unfold isContrf.
         (** 4 *)
